@@ -34,10 +34,10 @@ module.exports = (app)=>{
         res.setHeader('Content-Type', 'application/json');
         res.json({
         users:[{
-            name: 'DARLON SANTOS CARVALHO',
-            email: 'darlon.carvalho@hotmail.com',
-            telefone:'61981035324',
-            endereco: 'EQNP 11/15 Bloco C Lote 01 Casa 01 ', 
+            name: 'MARIA SANTOS',
+            email: 'maria@gmail.com',
+            telefone:'658225695',
+            endereco: 'rua teste', 
             id: 3
 
         }]
