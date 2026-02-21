@@ -1,122 +1,76 @@
 let NeDB = require('nedb');
- 
 
 let db = new NeDB({
   filename: 'users.db',
-  autoload: true  
-})
+  autoload: true
+});
 
-module.exports = (app)=>{
+module.exports = app => {
+  let route = app.route('/users');
+  let routeId = app.route('/users/:id');
 
+  route.get((req, res) => {
+    db.find({}).sort({ name: 1 }).exec((err, users) => {
+      if (err) return app.utils.error.send(err, req, res);
 
-    let route =  app.route('/users');
+      res.json({ users });
+    });
+  });
 
-    route.get((req, res)=>{
-             
-                db.find({}).sort({name:1}).exec((err, users)=>{
-                  
-                    if (err){
-                      app.utils.error.send(err, req, res);
+  app.get('/users/admin', (req, res) => {
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'application/json');
+    res.json({
+      users: [{
+        name: 'MARIA SANTOS',
+        email: 'maria@gmail.com',
+        telefone: '658225695',
+        endereco: 'rua teste',
+        id: 3
+      }]
+    });
+  });
 
-                    } else{
-                            res.json({
-                                users
-                    });
-                    }
-             }) 
-    
-        });
- 
-        //GET
-        app.get('/users/admin', (req, res)=>{
+  route.post((req, res) => {
+    if (!app.utils.validator.user(req, res)) return;
 
-        res.statusCode =  200;
-        res.setHeader('Content-Type', 'application/json');
-        res.json({
-        users:[{
-            name: 'MARIA SANTOS',
-            email: 'maria@gmail.com',
-            telefone:'658225695',
-            endereco: 'rua teste', 
-            id: 3
+    db.insert(req.body, (err, user) => {
+      if (err) return app.utils.error.send(err, req, res);
 
-        }]
+      res.status(201).json(user);
+    });
+  });
 
-        });
+  routeId.get((req, res) => {
+    db.findOne({ _id: req.params.id }, (err, user) => {
+      if (err) return app.utils.error.send(err, req, res);
+      if (!user) return res.status(404).json({ error: 'Usuário não encontrado.' });
 
-        });
+      res.status(200).json(user);
+    });
+  });
 
-        //POST
-        
-        route.post((req, res) =>{
-          
-         if (!app.utils.validator.user(req, res)) return false; 
+  routeId.put((req, res) => {
+    if (!app.utils.validator.user(req, res)) return;
 
-          db.insert(req.body, (err, user)=>{
-            if (err){
-                app.utils.error.send(err, req, res);          
-    
-           }  else {
-             res.status(200).json(user);
-           }
-        
-        });
-        });
+    db.update({ _id: req.params.id }, req.body, {}, (err, updatedCount) => {
+      if (err) return app.utils.error.send(err, req, res);
+      if (!updatedCount) return res.status(404).json({ error: 'Usuário não encontrado.' });
 
+      db.findOne({ _id: req.params.id }, (findErr, user) => {
+        if (findErr) return app.utils.error.send(findErr, req, res);
 
-        //consulta com parametro por Id usando o metodo  "findOne"
-        let routeId =  app.route('/users/:id');
-       
-        routeId.get((req, res) => {
-       
-           db.findOne({_id:req.params.id}).exec((err, user)=>{
-            if (err){
-                app.utils.error.send(err, req, res);          
-    
-           }  else {
-             res.status(200).json(user);
-           }
+        res.status(200).json(user);
+      });
+    });
+  });
 
-          })   
-        });
+  routeId.delete((req, res) => {
+    db.remove({ _id: req.params.id }, {}, (err, removedCount) => {
+      if (err) return app.utils.error.send(err, req, res);
+      if (!removedCount) return res.status(404).json({ error: 'Usuário não encontrado.' });
 
-       
-        routeId.put((req, res) => {
-          
-            if (!app.utils.validator.user(req, res)) return false; 
-             
-            db.update({_id:req.params.id}, req.body, err =>{
-             if (err){
-                 app.utils.error.send(err, req, res);          
-     
-            }  else {
-              res.status(200).json(
-                 Object.assign(
-                    req.params,
-                    req.body 
-                 ) 
-              );
-            }
- 
-           })   
-         });
-
-
-
-         routeId.delete((req, res) => {
-       
-            db.remove({_id:req.params.id}, {}, err =>{
-             if (err){
-                 app.utils.error.send(err, req, res);          
-     
-            }  else {
-              res.status(200).json(
-                req.params 
-             );
-            }
- 
-           })   
-         });
-
-
-  };
+      res.status(200).json({ _id: req.params.id, deleted: true });
+    });
+  });
+};
